@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>作品詳細 SVG 動作確認</title>
+  <style>
+    :root {
+      --phone-width: 402px;
+      --overlay-height: 300px;
+      --debug: transparent;
+      --debug-border: transparent;
+    }
+
+    body.debug {
+      --debug: rgba(0, 133, 203, 0.14);
+      --debug-border: rgba(0, 133, 203, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #1f1f1f;
+      font-family: system-ui, sans-serif;
+    }
+
+    .phone {
+      position: relative;
+      width: var(--phone-width);
+      min-height: 100vh;
+      margin: 0 auto;
+      background: #fff;
+    }
+
+    .screen {
+      display: block;
+      width: 402px;
+      height: auto;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .hit {
+      position: absolute;
+      z-index: 10;
+      border: 1px solid var(--debug-border);
+      background: var(--debug);
+      cursor: pointer;
+    }
+
+    .hit[data-label]::after {
+      display: none;
+      position: absolute;
+      left: 4px;
+      top: 2px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(0, 133, 203, 0.9);
+      color: #fff;
+      content: attr(data-label);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    body.debug .hit[data-label]::after {
+      display: block;
+    }
+
+    .overlay-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .overlay-layer.is-open {
+      display: flex;
+    }
+
+    .overlay-panel {
+      position: relative;
+      width: var(--phone-width);
+      height: var(--overlay-height);
+      animation: slideUp 220ms ease-out;
+    }
+
+    .overlay-panel img {
+      display: block;
+      width: 402px;
+      height: 300px;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .overlay-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      z-index: 35;
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--debug-border);
+      background: var(--debug);
+      cursor: pointer;
+    }
+
+    .state-badge {
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      z-index: 50;
+      display: none;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      font-size: 12px;
+    }
+
+    body.debug .state-badge {
+      display: block;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(28px);
+        opacity: 0.5;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" id="phone" aria-label="作品詳細プロトタイプ">
+    <img id="screen" class="screen" src="svg-prototype-assets/main_page.svg" alt="作品詳細" />
+  </main>
+
+  <div class="overlay-layer" id="overlayLayer" aria-hidden="true">
+    <div class="overlay-panel">
+      <img id="overlayImage" src="" alt="" />
+      <button class="overlay-close" id="overlayClose" type="button" aria-label="閉じる"></button>
+    </div>
+  </div>
+
+  <div class="state-badge" id="stateBadge">state: main</div>
+
+  <script>
+    const ASSETS = {
+      main: "svg-prototype-assets/main_page.svg",
+      detail: "svg-prototype-assets/syousai.svg",
+      correct: "svg-prototype-assets/quiz_correct.svg",
+      wrongA: "svg-prototype-assets/quiz_wrong_A.svg",
+      wrongC: "svg-prototype-assets/quiz_wrong_C.svg",
+      audio: "svg-prototype-assets/audio_overlay.svg",
+      language: "svg-prototype-assets/language_overlay.svg",
+    };
+
+    const HIT_MAP = {
+      main: [
+        { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
+        { label: "detail", x: 286, y: 628, w: 94, h: 64, action: () => setState("detail") },
+        { label: "audio", x: 55, y: 724, w: 304, h: 72, action: () => openOverlay("audio") },
+        { label: "quiz A", x: 70, y: 915, w: 270, h: 42, action: () => setState("wrongA") },
+        { label: "quiz B", x: 70, y: 956, w: 270, h: 42, action: () => setState("correct") },
+        { label: "quiz C", x: 70, y: 997, w: 270, h: 42, action: () => setState("wrongC") },
+      ],
+      detail: [
+        { label: "close detail", x: 270, y: 768, w: 112, h: 60, action: () => setState("main") },
+        { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
+        { label: "audio", x: 55, y: 905, w: 304, h: 72, action: () => openOverlay("audio") },
+      ],
+      correct: [
+        { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
+        { label: "detail", x: 286, y: 628, w: 94, h: 64, action: () => setState("detail") },
+        { label: "audio", x: 55, y: 724, w: 304, h: 72, action: () => openOverlay("audio") },
+      ],
+      wrongA: [
+        { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
+        { label: "detail", x: 286, y: 628, w: 94, h: 64, action: () => setState("detail") },
+        { label: "audio", x: 55, y: 724, w: 304, h: 72, action: () => openOverlay("audio") },
+      ],
+      wrongC: [
+        { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
+        { label: "detail", x: 286, y: 628, w: 94, h: 64, action: () => setState("detail") },
+        { label: "audio", x: 55, y: 724, w: 304, h: 72, action: () => openOverlay("audio") },
+      ],
+    };
+
+    const phone = document.getElementById("phone");
+    const screen = document.getElementById("screen");
+    const overlayLayer = document.getElementById("overlayLayer");
+    const overlayImage = document.getElementById("overlayImage");
+    const overlayClose = document.getElementById("overlayClose");
+    const stateBadge = document.getElementById("stateBadge");
+
+    let state = "main";
+
+    if (new URLSearchParams(location.search).get("debug") === "1") {
+      document.body.classList.add("debug");
+    }
+
+    function setState(nextState) {
+      state = nextState;
+      screen.src = ASSETS[nextState];
+      screen.alt = nextState;
+      stateBadge.textContent = `state: ${nextState}`;
+      closeOverlay();
+      renderHits();
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
+    function openOverlay(type) {
+      overlayImage.src = ASSETS[type];
+      overlayImage.alt = type;
+      overlayLayer.classList.add("is-open");
+      overlayLayer.setAttribute("aria-hidden", "false");
+      stateBadge.textContent = `state: ${state} / overlay: ${type}`;
+    }
+
+    function closeOverlay() {
+      overlayLayer.classList.remove("is-open");
+      overlayLayer.setAttribute("aria-hidden", "true");
+      overlayImage.removeAttribute("src");
+      overlayImage.alt = "";
+      stateBadge.textContent = `state: ${state}`;
+    }
+
+    function renderHits() {
+      phone.querySelectorAll(".hit").forEach((node) => node.remove());
+      const hits = HIT_MAP[state] || [];
+      for (const hit of hits) {
+        const button = document.createElement("button");
+        button.className = "hit";
+        button.type = "button";
+        button.dataset.label = hit.label;
+        button.setAttribute("aria-label", hit.label);
+        button.style.left = `${hit.x}px`;
+        button.style.top = `${hit.y}px`;
+        button.style.width = `${hit.w}px`;
+        button.style.height = `${hit.h}px`;
+        button.addEventListener("click", hit.action);
+        phone.appendChild(button);
+      }
+    }
+
+    overlayClose.addEventListener("click", closeOverlay);
+    overlayLayer.addEventListener("click", (event) => {
+      if (event.target === overlayLayer) closeOverlay();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeOverlay();
+      if (event.key === "m") setState("main");
+      if (event.key === "d") setState("detail");
+    });
+
+    renderHits();
+  </script>
+</body>
+</html>
