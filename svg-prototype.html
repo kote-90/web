@@ -179,6 +179,9 @@
         { label: "close detail", x: 270, y: 768, w: 112, h: 60, action: () => setState("main") },
         { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
         { label: "audio", x: 55, y: 905, w: 304, h: 72, action: () => openOverlay("audio") },
+        { label: "quiz A", x: 70, y: 1102, w: 270, h: 42, action: () => setState("wrongA") },
+        { label: "quiz B", x: 70, y: 1143, w: 270, h: 42, action: () => setState("correct") },
+        { label: "quiz C", x: 70, y: 1184, w: 270, h: 42, action: () => setState("wrongC") },
       ],
       correct: [
         { label: "language", x: 305, y: 54, w: 76, h: 52, action: () => openOverlay("language") },
@@ -217,7 +220,6 @@
       stateBadge.textContent = `state: ${nextState}`;
       closeOverlay();
       renderHits();
-      window.scrollTo({ top: 0, behavior: "instant" });
     }
 
     function openOverlay(type) {
